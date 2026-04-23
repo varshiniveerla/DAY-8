@@ -1,0 +1,72 @@
+import pandas as pd
+import numpy as np
+import random
+import math
+
+def generate_data(n):
+    return [(f"S{100+i}", random.randint(10, 100), 
+             random.randint(10, 100), random.randint(5, 50)) 
+            for i in range(1, n + 1)]
+
+def classify_students(df):
+    res = {}
+    for _, r in df.iterrows():
+        sid, m, a = r['ID'], r['Marks'], r['Attendance']
+        if m < 40 or a < 50:
+            tag = "At Risk"
+        elif m > 90 and a > 80:
+            tag = "Top Performer"
+        elif 71 <= m <= 90:
+            tag = "Good"
+        else:
+            tag = "Average"
+        res[sid] = tag
+    return res
+
+def analyze_data(df):
+    m_list = df['Marks'].tolist()
+    avg = sum(m_list) / len(m_list)
+    sd = np.std(m_list)
+    mx = np.max(m_list)
+    mi = np.min(m_list)
+    df['Norm'] = [(x - mi) / (mx - mi) if mx > mi else 0 for x in m_list]
+    df['PI'] = df.apply(lambda r: (r['Marks'] * 0.6 + r['Asn'] * 0.4) * math.log(r['Attendance'] + 1), axis=1)
+    return (avg, sd, mx)
+
+# Logic for ID ending in 4 (10 + 4 = 14 students)
+data_list = generate_data(14)
+df = pd.DataFrame(data_list, columns=['ID', 'Marks', 'Attendance', 'Asn'])
+
+stats_tuple = analyze_data(df)
+categories = classify_students(df)
+df['Category'] = df['ID'].map(categories)
+
+# Pattern Detection for Insight
+low_att = len(df[df['Attendance'] < 50])
+tops = list(categories.values()).count("Top Performer")
+is_stable = stats_tuple[1] < 15
+
+if low_att > 3:
+    insight = "Critical Attention Required"
+elif is_stable or tops >= 2:
+    insight = "Stable Academic System"
+else:
+    insight = "Moderate Performance"
+
+# --- FINAL OUTPUT DISPLAY ---
+print("--- DATAFRAME TABLE ---")
+print(df.to_string(index=False))
+
+print("\n--- CATEGORIZED DICTIONARY ---")
+print(categories)
+
+print("\n--- STATISTICAL SUMMARY ---")
+print(f"Mean Marks: {stats_tuple[0]:.2f}")
+print(f"Standard Deviation: {stats_tuple[1]:.2f}")
+print(f"Max Marks: {stats_tuple[2]}")
+
+print("\n--- STATS TUPLE ---")
+print(stats_tuple)
+
+print("\n--- FINAL SYSTEM INSIGHT ---")
+print(insight)
